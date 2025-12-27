@@ -1,15 +1,14 @@
+use std::process::{Command, Output};
+
 use crate::{Error, Result, Wifi};
 
 /// Returns a list of WiFi hotspots in your area - (OSX/MacOS) uses `airport`
 pub(crate) fn scan() -> Result<Vec<Wifi>> {
-    use std::process::Command;
-    let output = Command::new(
-        "/System/Library/PrivateFrameworks/Apple80211.\
-         framework/Versions/Current/Resources/airport",
-    )
-    .arg("-s")
-    .output()
-    .map_err(|_| Error::CommandNotFound)?;
+    let binary_path = "./macros/output/wifiscanner"; // TODO: make this dynamic via env var
+
+    let output: Output = Command::new(binary_path)
+        .output()
+        .map_err(|_| Error::CommandNotFound)?;
 
     let data = String::from_utf8_lossy(&output.stdout);
 
