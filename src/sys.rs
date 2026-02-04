@@ -3,6 +3,11 @@ mod macos;
 #[cfg(target_os = "macos")]
 pub(crate) use self::macos::*;
 
+#[cfg(target_os = "macos")]
+mod macos_bindings;
+#[cfg(target_os = "macos")]
+pub(crate) use self::macos_bindings::*;
+
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]

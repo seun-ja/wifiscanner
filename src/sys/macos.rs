@@ -1,21 +1,25 @@
-use std::process::{Command, Output};
-
-use crate::{Error, Result, Wifi};
+use crate::{Error, Result, Wifi, sys::WifiScanResult};
 
 /// Returns a list of WiFi hotspots in your area - (OSX/MacOS) uses `airport`
 pub(crate) fn scan() -> Result<Vec<Wifi>> {
-    let binary_path = "./macros/output/wifiscanner"; // TODO: make this dynamic via env var
+    let v = unsafe {
+        let result = cc_scan();
+        if result.items.is_null() {
+            return Ok(vec![]);
+        }
 
-    let output: Output = Command::new(binary_path)
-        .output()
-        .map_err(|_| Error::CommandNotFound)?;
+        let slice = std::slice::from_raw_parts(result.items, result.len as usize);
 
-    let data = String::from_utf8_lossy(&output.stdout);
+        let networks: Vec<Wifi> = slice.iter().map(|n| n.into()).collect();
 
-    parse_airport(&data)
+        cc_free_scan(result);
+        networks
+    };
+    Ok(v)
+    // parse_airport("&data")
 }
 
-fn parse_airport(network_list: &str) -> Result<Vec<Wifi>> {
+fn _parse_airport(network_list: &str) -> Result<Vec<Wifi>> {
     let mut wifis: Vec<Wifi> = Vec::new();
     let mut lines = network_list.lines();
     let headers = match lines.next() {
@@ -58,6 +62,11 @@ fn parse_airport(network_list: &str) -> Result<Vec<Wifi>> {
     Ok(wifis)
 }
 
+unsafe extern "C" {
+    pub(crate) fn cc_scan() -> WifiScanResult;
+    pub(crate) fn cc_free_scan(result: WifiScanResult);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,7 +102,7 @@ mod tests {
         let mut filestr = String::new();
         let _ = file.read_to_string(&mut filestr).unwrap();
 
-        let result = parse_airport(&filestr).unwrap();
+        let result = _parse_airport(&filestr).unwrap();
         let last = result.len() - 1;
         assert_eq!(expected[0], result[0]);
         assert_eq!(expected[1], result[last]);
@@ -108,7 +117,7 @@ mod tests {
         file.read_to_string(&mut filestr).unwrap();
 
         assert_eq!(
-            parse_airport(&filestr).err().unwrap(),
+            _parse_airport(&filestr).err().unwrap(),
             Error::HeaderNotFound("BSSID")
         );
     }
