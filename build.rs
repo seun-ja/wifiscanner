@@ -9,14 +9,6 @@ fn main() {
         return;
     }
 
-    // cc::Build::new()
-    //     .file("src/ffi_c/scan.mm")
-    //     .flag("-x")
-    //     .flag("objective-c++")
-    //     .flag("-std=c++17")
-    //     .flag("-fobjc-arc")
-    //     .compile("cc_scan");
-
     cc::Build::new()
         .file("src/ffi_c/scan.mm")
         .cpp(true) // important for Objective-C++
